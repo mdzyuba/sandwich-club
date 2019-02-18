@@ -1,8 +1,13 @@
 package com.udacity.sandwichclub;
 
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
+import android.view.View;
+import android.webkit.URLUtil;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -17,6 +22,7 @@ public class DetailActivity extends AppCompatActivity {
 
     public static final String EXTRA_POSITION = "extra_position";
     private static final int DEFAULT_POSITION = -1;
+    public static final String DELIMITER = ", ";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,9 +54,19 @@ public class DetailActivity extends AppCompatActivity {
         }
 
         populateUI(sandwich);
-        Picasso.with(this)
-                .load(sandwich.getImage())
-                .into(ingredientsIv);
+
+        Picasso.Builder picassoBuilder = new Picasso.Builder(getApplicationContext())
+                .listener(new Picasso.Listener() {
+            @Override
+            public void onImageLoadFailed(Picasso picasso, Uri uri, Exception exception) {
+                TextView imageNotAvailableTextView = findViewById(R.id.image_not_available_tv);
+                imageNotAvailableTextView.setVisibility(View.VISIBLE);
+            }
+        });
+        Picasso picasso = picassoBuilder.build();
+        picasso.load(sandwich.getImage())
+               .placeholder(R.drawable.image_placeholder)
+               .into(ingredientsIv);
 
         setTitle(sandwich.getMainName());
     }
@@ -62,28 +78,23 @@ public class DetailActivity extends AppCompatActivity {
 
     private void populateUI(Sandwich sandwich) {
         TextView originTextView = findViewById(R.id.origin_tv);
-        originTextView.setText(sandwich.getPlaceOfOrigin());
+        originTextView.setText(getTextOrError(sandwich.getPlaceOfOrigin()));
 
         TextView alsoKnownTextView = findViewById(R.id.also_known_tv);
         List<String> alsoKnownAs = sandwich.getAlsoKnownAs();
-        for (int i = 0; i < alsoKnownAs.size(); i++) {
-            alsoKnownTextView.append(alsoKnownAs.get(i));
-            if (i < alsoKnownAs.size() - 1) {
-                alsoKnownTextView.append(", ");
-            }
-        }
+        alsoKnownTextView.setText(getTextOrError(TextUtils.join(DELIMITER, alsoKnownAs)));
 
         TextView descriptionTextView = findViewById(R.id.description_tv);
-        descriptionTextView.setText(sandwich.getDescription());
+        descriptionTextView.setText(getTextOrError(sandwich.getDescription()));
 
         TextView ingredientsTextView = findViewById(R.id.ingredients_tv);
         List<String> ingredients = sandwich.getIngredients();
-        for (int i = 0; i < ingredients.size(); i++) {
-            ingredientsTextView.append(ingredients.get(i));
-            if (i < ingredients.size() - 1) {
-                ingredientsTextView.append(", ");
-            }
-        }
+        ingredientsTextView.setText(getTextOrError(TextUtils.join(DELIMITER, ingredients)));
+    }
 
+    private CharSequence getTextOrError(String text) {
+        return TextUtils.isEmpty(text) ?
+                                       getText(R.string.not_available) :
+                                       text;
     }
 }
